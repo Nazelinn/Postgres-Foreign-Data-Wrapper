@@ -1,0 +1,47 @@
+
+Postgres Foreign Data Wrapper
+
+Postgresql – Postgresql  => postgres_fdw
+Postgresql – MSSQL  =>tds_fdw
+Postgresql  – Redis  => redis_fdw
+Postgresql – MYSQL => Mysql_fdw
+Postgresql -MongoDB =>Mongo_fdw
+
+CREATE EXTENSION postgres_fdw; ile aktif hale getirmek,
+CREATE SERVER ile uç nokta tanımını yapıp bağlantıyı tanımlamak (host/port vs),
+CREATE USER MAPPING ile uzak veritabanına bağlanacak olan kullanıcıyı oluşturmak,
+CREATE FOREIGN TABLE ile uzak yabancı tabloyu oluşturmak
+
+Postgresql – MSSQL  =>tds_fdw
+-- fdw oluşturmadan önce aşağıdaki paketler tüm node larda kurulur.
+yum install epel-release
+yum install freetds freetds-devel
+curl https://tds-fdw.github.io/yum/tds_fdw.repo -o /etc/yum.repos.d/tds_fdw.repo
+yum install postgresql-11-tds_fdw
+​
+create extension tds_fdw;
+​
+create server nzadb foreign data wrapper tds_fdw
+options (servername 'nzadb.development.com', port '1433', database 'nza');
+​
+create user mapping for postgres 
+server nzadb options (username 'x_user', password 'xxx'); ---mssql de yetkili kullanıcı 
+​
+create schema nzadb_tds_fdw;
+​
+create foreign table nzadb_tds_fdw."Warehouse" ("Id" text, "Name" text, "CutOffTime" int) 
+server nzadb options (schema_name 'dbo', table_name 'Warehouse');
+​
+grant usage on schema nzadb_tds_fdw to postgres;
+​
+grant select on all tables in schema nzadb_tds_fdw to postgres;
+​
+vi /var/lib/pgsql/11/data/postgresql.conf
+search_path = '"$user", public, nzadb_tds_fdw'
+​
+su - postgres
+psql
+select pg_reload_conf();
+show search_path;
+select * from nzadb_tds_fdw."Warehouse";
+
